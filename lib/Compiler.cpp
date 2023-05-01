@@ -67,7 +67,6 @@
 #include <string>
 
 using namespace clang;
-using namespace clspv;
 
 namespace {
 enum class SPIRArch : uint32_t {
@@ -996,25 +995,7 @@ int CompileModule(const llvm::StringRef &input_filename,
     return GenerateIRFile(module, output_buffer);
   }
 
-  // check whether any math builtins is available or not
-  // for which we really need to call LinkBuiltinLibrary
-  // e.g. cbrt, hypot etc.
-  bool isBuiltInAvailable = false;
-  for (auto &F : module->getFunctionList()){
-    auto &func_info = clspv::Builtins::Lookup(&F);
-    auto func_type = func_info.getType();
-    if (BUILTIN_IN_GROUP(func_type, Math)) {
-      if ((Builtins::getExtInstEnum(func_info) == Builtins::kGlslExtInstBad) &&
-      (ReplaceOpenCLBuiltinPass::ReplaceableBuiltins.count(func_type) == 0)) {
-        isBuiltInAvailable = true;
-        break;
-      }
-    }
-  }
-
-  // call LinkBuiltinLibrary only if math builtins e.g cbrt, hypot
-  // are available in kernel else ignore it to save few milliseconds
-  if (isBuiltInAvailable && !LinkBuiltinLibrary(module.get())) {
+  if (!LinkBuiltinLibrary(module.get())) {
       return -1;
   }
 
